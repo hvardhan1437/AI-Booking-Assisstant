@@ -26,7 +26,7 @@ Never commit secrets.toml to GitHub.
 ## 📦 Installation & Setup
 ### 1️⃣ Clone the Repository
 ```
-git clone https://github.com/<your-username>/AI-Clinic-Booking-Assistant.git
+git clone https://github.com/hvardhan1437/AI-Clinic-Booking-Assistant.git
 cd AI-Clinic-Booking-Assistant
 ```
 
