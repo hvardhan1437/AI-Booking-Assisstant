@@ -1,6 +1,9 @@
 # 🩺 AI Clinic Booking Assistant
 
+An AI-powered clinic appointment booking system built using **Streamlit**, **LLM (Groq – LLaMA 3)**, and **RAG (Retrieval-Augmented Generation)**.  
+The chatbot supports **PDF-based Q&A**, **multi-turn appointment booking**, **conflict-aware scheduling**, **email confirmation**, and an **admin dashboard**.
 
+---
 
 ## 🔐 Environment & Secrets Setup
 
@@ -69,3 +72,66 @@ http://localhost:8501
 5. Receive email confirmation
 ---
 ### Deployed Streamlit Cloud Link :- https://brappzyuh9qvmsnat2tiq7t.streamlit.app/
+
+---
+
+## 📂 Project Structure
+
+```
+AI_UseCase/
+|
+│
+├── app.py
+├── admin_dashboard.py
+│
+├── models/
+│ ├── llm.py
+│ └── embeddings.py
+│
+├── utils/
+│ ├── validation.py
+│ └── email_service.py
+│
+├── db/
+│ ├── database.py
+│ └── bookings.db
+│
+├── .streamlit/
+│ └── secrets.toml
+│
+├── requirements.txt
+└── README.md
+
+```
+
+---
+
+## 🏗️ Architecture Overview
+```
+User
+│
+▼
+Streamlit UI
+│
+├── Chat Interface
+│ ├── Intent Detection
+│ ├── Validation Layer
+│ ├── Booking Flow Manager
+│ └── Memory (Session State)
+│
+├── RAG Pipeline
+│ ├── PDF Upload
+│ ├── Text Extraction
+│ ├── Chunking
+│ ├── Embeddings
+│ └── Vector Search
+│
+├── LLM (Groq – LLaMA 3)
+│
+├── SQLite Database
+│ ├── customers
+│ └── bookings
+│
+└── Email Service (SMTP)
+
+```
