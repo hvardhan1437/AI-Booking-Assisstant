@@ -81,7 +81,7 @@ def admin_dashboard():
         use_container_width=True
     )
 
-# ---------- OPTIONAL DETAIL VIEW ----------
+
     st.divider()
     st.subheader("🔎 View Booking Details")
 

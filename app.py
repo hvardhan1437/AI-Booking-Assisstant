@@ -14,10 +14,12 @@ from db.database import init_db, save_booking
 from utils.email_service import send_confirmation_email
 from admin_dashboard import admin_dashboard
 import json
-
 from db.database import clear_database
 from datetime import datetime, date, time, timedelta
 from db.database import get_bookings_by_date
+from datetime import time
+import json
+
 from utils.validation import (
     validate_field,
     validate_time,
@@ -37,9 +39,6 @@ def refers_to_uploaded_document(text):
     return any(word in text.lower() for word in keywords)
 
 
-
-
-
 def get_rag_context(query):
     vector_store = st.session_state.get("vector_store")
     if not vector_store:
@@ -50,13 +49,6 @@ def get_rag_context(query):
         return ""
 
     return "\n\n".join(doc.page_content for doc in docs)
-
-
-
-from datetime import time
-
-
-
 
 
 def is_booking_intent(text):
@@ -113,7 +105,6 @@ def booking_summary(booking):
 Reply **YES** to confirm or **NO** to cancel.
 """
 
-
 def get_chat_response(chat_model, messages):
     try:
         user_query = messages[-1]["content"]
@@ -155,8 +146,6 @@ def booking_started(booking):
         v is not None for k, v in booking.items() if k not in ["confirmed"]
     )
 
-
-import json
 
 def is_edit_intent(text):
     text = text.lower()
@@ -356,13 +345,13 @@ def chat_page():
                     # ---- Confirmation stage ----
                     if not missing:
 
-                        # ✅ USER WANTS TO EDIT (MUST COME FIRST)
+                        # USER WANTS TO EDIT 
                         if is_edit_intent(prompt):
                             booking["editing"] = True
                             booking["time"] = None
                             response = "Sure 👍 Please enter the new preferred time (HH:MM)."
 
-                        # ✅ USER CONFIRMS
+                        # USER CONFIRMS
                         elif is_confirmation_intent(prompt):
                             try:
                                 booking_id = save_booking(booking)
@@ -504,7 +493,7 @@ def main():
 
         st.divider()
 
-        # Optional utility
+       
         if st.button("🗑️ Clear Chat History", use_container_width=True):
 
             # Clear chat messages

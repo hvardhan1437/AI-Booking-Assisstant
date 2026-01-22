@@ -38,7 +38,7 @@ def init_db():
     conn.close()
 
 
-# 🔒 AUTHORITATIVE SAVE (conflict enforced here)
+
 def save_booking(booking):
     conn = get_connection()
     cursor = conn.cursor()
