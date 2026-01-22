@@ -46,8 +46,10 @@ def get_rag_context(query):
         return ""
 
     docs = vector_store.similarity_search(query, k=3)
-    return "\n\n".join(doc.page_content for doc in docs)
+    if not docs:
+        return ""
 
+    return "\n\n".join(doc.page_content for doc in docs)
 
 
 
@@ -113,45 +115,38 @@ Reply **YES** to confirm or **NO** to cancel.
 
 
 def get_chat_response(chat_model, messages):
-    """
-    Handles normal chat + RAG-based Q&A.
-    Remains general-purpose while using documents when relevant.
-    """
     try:
         user_query = messages[-1]["content"]
-
-        # Get RAG context (may be empty)
         rag_context = get_rag_context(user_query)
 
         system_prompt = f"""
 You are a helpful AI assistant.
 
-Guidelines:
-- Respond naturally to greetings and casual conversation.
-- If relevant document context is available, use it to answer accurately.
-- The documents may relate to a clinic, doctors, services, or appointments.
-- Do NOT force the conversation toward booking unless the user explicitly intends it.
-- If the answer is not present in the documents, respond using general knowledge.
+Rules:
+- You CAN read and use uploaded documents.
+- The document text is already extracted for you.
+- NEVER say you cannot read PDFs or files.
+- Use document context when available.
+- Respond normally to casual conversation.
+- Do NOT push booking unless the user asks.
 
-Document Context (if any):
+Document Context:
 {rag_context}
 """
 
-        formatted_messages = [SystemMessage(content=system_prompt)]
+        formatted = [SystemMessage(content=system_prompt)]
 
-        # Use last 20 messages for short-term memory
         for msg in messages[-20:]:
             if msg["role"] == "user":
-                formatted_messages.append(HumanMessage(content=msg["content"]))
+                formatted.append(HumanMessage(content=msg["content"]))
             else:
-                formatted_messages.append(AIMessage(content=msg["content"]))
+                formatted.append(AIMessage(content=msg["content"]))
 
-        response = chat_model.invoke(formatted_messages)
+        response = chat_model.invoke(formatted)
         return response.content
 
-    except Exception as e:
-        return "⚠️ Something went wrong while generating a response. Please try again."
-
+    except Exception:
+        return "⚠️ Something went wrong. Please try again."
 
 
 
@@ -323,23 +318,23 @@ def chat_page():
             with st.spinner("Thinking..."):
 
                 # 🔹 CASE 1: Booking not started → detect intent
-                if (
-                    not booking["started"]
-                    and (
-                        is_booking_intent(prompt)
-                        or refers_to_uploaded_document(prompt)
-                    )
-                ):
-                    booking["started"] = True
-                    extracted = extract_booking_from_pdf(prompt, chat_model)
-                    merge_booking_data(extracted, booking)
+                if not booking["started"] and is_booking_intent(prompt):
 
-                    missing = get_missing_fields(booking)
-                    response = (
-                        next_booking_question(missing[0])
-                        if missing
-                        else booking_summary(booking)
-                    )
+                    extracted = extract_booking_from_pdf(prompt, chat_model)
+
+                    if any(extracted.values()):
+                        booking["started"] = True
+                        merge_booking_data(extracted, booking)
+
+                        missing = get_missing_fields(booking)
+                        response = (
+                            next_booking_question(missing[0])
+                            if missing
+                            else booking_summary(booking)
+                        )
+                    else:
+                        booking["started"] = True
+                        response = "Sure, I can help you book an appointment. May I know your full name?"
                 # 🔹 CASE 2: Booking in progress
                 elif booking["started"] and not booking["confirmed"]:
                     missing = get_missing_fields(booking)
