@@ -158,6 +158,14 @@ def booking_started(booking):
 
 import json
 
+def is_edit_intent(text):
+    text = text.lower()
+    keywords = [
+        "edit", "modify", "change", "update",
+        "reschedule", "different time", "another time"
+    ]
+    return any(k in text for k in keywords)
+
 
 def extract_booking_from_pdf(query, chat_model):
     """
@@ -251,6 +259,10 @@ def is_confirmation_intent(text):
     return text in ["yes", "confirm", "confirmed", "okay", "ok", "proceed", "done"]
 
 
+if "uploader_version" not in st.session_state:
+    st.session_state.uploader_version = 0
+
+
 def chat_page():
     """Main chat interface page"""
     st.title("🩺 AI Clinic Booking Assistant")
@@ -263,7 +275,8 @@ def chat_page():
         uploaded_files = st.file_uploader(
             "Upload one or more PDFs",
             type=["pdf"],
-            accept_multiple_files=True
+            accept_multiple_files=True,
+            key=f"pdf_uploader_{st.session_state.uploader_version}"
         )
 
 
@@ -291,6 +304,7 @@ def chat_page():
     if "booking_data" not in st.session_state:
         st.session_state.booking_data = {
             "started": False,
+            "editing": False,
             "name": None,
             "email": None,
             "phone": None,
@@ -341,21 +355,29 @@ def chat_page():
 
                     # ---- Confirmation stage ----
                     if not missing:
-                        if is_confirmation_intent(prompt):
+
+                        # ✅ USER WANTS TO EDIT (MUST COME FIRST)
+                        if is_edit_intent(prompt):
+                            booking["editing"] = True
+                            booking["time"] = None
+                            response = "Sure 👍 Please enter the new preferred time (HH:MM)."
+
+                        # ✅ USER CONFIRMS
+                        elif is_confirmation_intent(prompt):
                             try:
                                 booking_id = save_booking(booking)
                                 booking["confirmed"] = True
                             except ValueError as e:
                                 booking["time"] = None
-                                response=f"⚠️ {str(e)} Please choose a different time."
+                                response = f"⚠️ {str(e)} Please choose a different time."
                                 st.markdown(response)
                                 return
+
                             email_sent = send_confirmation_email(
                                 booking["email"],
                                 booking_id,
                                 booking
                             )
-
                             if email_sent:
                                 response = f"""
                             
@@ -390,6 +412,7 @@ Please keep this information for your reference.
                             # 🔁 Reset booking state after completion
                             st.session_state.booking_data = {
                                 "started": False,
+                                "editing":False,
                                 "name": None,
                                 "email": None,
                                 "phone": None,
@@ -402,6 +425,7 @@ Please keep this information for your reference.
                         elif prompt.lower() in ["no", "cancel"]:
                             st.session_state.booking_data = {
                                 "started": False,
+                                "editing":False,
                                 "name": None,
                                 "email": None,
                                 "phone": None,
@@ -423,6 +447,7 @@ Please keep this information for your reference.
                             response = error_msg
                         else:
                             booking[field] = prompt
+                            booking["editing"] = False 
                             remaining = get_missing_fields(booking)
                             response = (
                                 next_booking_question(remaining[0])
@@ -464,10 +489,7 @@ def main():
 
         st.divider()
         st.sidebar.caption("© 2026 AI Clinic Booking Assistant")
-       #st.markdown(
-    #"<small style='color:gray'>© 2026 AI Booking Assistant</small>",
-    #unsafe_allow_html=True
-    #)
+ 
         if st.sidebar.button("🗑️ Reset Database"):
             clear_database()
             st.success("Database cleared successfully.")
@@ -484,8 +506,33 @@ def main():
 
         # Optional utility
         if st.button("🗑️ Clear Chat History", use_container_width=True):
+
+            # Clear chat messages
             st.session_state.messages = []
+
+            # Clear booking state
+            st.session_state.booking_data = {
+                "started": False,
+                "editing": False,
+                "name": None,
+                "email": None,
+                "phone": None,
+                "booking_type": None,
+                "date": None,
+                "time": None,
+                "confirmed": False
+            }
+
+            # Clear RAG / PDF memory
+            if "vector_store" in st.session_state:
+                del st.session_state.vector_store
+
+            # 🔥 RESET FILE UPLOADER WIDGET
+            st.session_state.uploader_version += 1
+
+            st.success("Chat, booking flow, and uploaded documents cleared.")
             st.rerun()
+
 
     # ---------- PAGE ROUTING ----------
     if "page" not in st.session_state:
