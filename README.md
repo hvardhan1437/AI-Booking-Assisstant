@@ -68,3 +68,4 @@ http://localhost:8501
 
 5. Receive email confirmation
 ---
+### Deployed Streamlit Cloud Link :- https://brappzyuh9qvmsnat2tiq7t.streamlit.app/
